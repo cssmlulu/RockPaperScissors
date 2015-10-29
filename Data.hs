@@ -1,9 +1,11 @@
 module Data (
+    randomStrategy,
     convertStrategy,
     Strategy (..),
     Result (..)
     ) where
 
+import System.Random
 
 data Strategy = Rock | Paper | Scissors
     deriving (Show, Eq)
@@ -21,6 +23,12 @@ convertStrategy x
     | x `elem` "Pp" = Just Paper
     | x `elem` "Ss" = Just Scissors
     | otherwise = Nothing
+
+randomStrategy :: Int -> Strategy
+randomStrategy x
+    | x == 0  = Rock
+    | x == 1  = Paper
+    | x == 2  = Scissors
 
 
 data Result = Win | Lose | Draw

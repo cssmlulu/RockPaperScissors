@@ -4,14 +4,18 @@ import RockPaperScissors (playGame)
 import System.IO
 import Control.Applicative
 import Data 
+import System.Random
+
 
 main :: IO ()
 main = do
-    putStr "\nYou choose: "
+    putStrLn "Enter r for Rock, p for Paper or s for Scissors\n"
+    putStr "Your choice: "
     hFlush stdout
     playerChoose <- getChar
     let player   = convertStrategy playerChoose
-    let computer = Rock
+    randNum <- getStdRandom (randomR (0,2))
+    let computer = randomStrategy randNum
     
     let result = playGame computer <$> player
     case result of
