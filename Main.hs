@@ -1,17 +1,16 @@
 module Main (main) where
 
-import RockPaperScissors (setChoice, playGame)
+import RockPaperScissors (playGame)
 import System.IO
 import Control.Applicative
-import Data.Maybe
-import Data
+import Data 
 
 main :: IO ()
 main = do
     putStr "\nYou choose: "
     hFlush stdout
-    playerChoose <- getLine
-    let player   = setChoice playerChoose
+    playerChoose <- getChar
+    let player   = convertStrategy playerChoose
     let computer = Rock
     
     let result = playGame computer <$> player

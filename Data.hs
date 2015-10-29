@@ -1,4 +1,5 @@
 module Data (
+    convertStrategy,
     Strategy (..),
     Result (..)
     ) where
@@ -13,6 +14,13 @@ instance Ord Strategy where
         | x == Paper    && y == Rock        = GT
         | x == Scissors && y == Paper       = GT
         | otherwise                         = LT
+
+convertStrategy :: Char -> Maybe Strategy
+convertStrategy x
+    | x `elem` "Rr" = Just Rock
+    | x `elem` "Pp" = Just Paper
+    | x `elem` "Ss" = Just Scissors
+    | otherwise = Nothing
 
 
 data Result = Win | Lose | Draw
