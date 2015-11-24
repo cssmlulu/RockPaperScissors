@@ -1,10 +1,11 @@
 module Main (main) where
 
-import Data
-import RockPaperScissors (playGame)
+import RockPaperScissors
+
 import System.IO
 import Control.Applicative
 import System.Random
+import Data.Char(toLower)
 
 main :: IO ()
 main = do
@@ -18,7 +19,7 @@ game = do
     putStr "Your choice: "
     hFlush stdout
     playerChoose <- getLine
-    let player   = convertStrategy $ head playerChoose
+    let player   = convertStrategy $ toLower $ head playerChoose
 
     -- computer
     randNum <- getStdRandom (randomR (0,2))
@@ -34,11 +35,15 @@ game = do
             putStrLn "Invalid move."
         Just x  -> do
             putStrLn $ show x   
+    -- ask whether continue game or not
+    gameContinue
 
-    -- another game
+gameContinue :: IO ()
+gameContinue = do
     putStr $ "Continue? [y/n]: "
     hFlush stdout
     continue <- getLine
-    if continue == "y"
-        then game
-        else return ()
+    case map toLower continue of
+        "n" -> return ()
+        "y" -> game
+        otherwise -> gameContinue
