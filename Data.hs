@@ -5,7 +5,6 @@ module Data (
     Result (..)
     ) where
 
-import System.Random
 
 data Strategy = Rock | Paper | Scissors
     deriving (Show, Eq)

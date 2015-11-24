@@ -2,9 +2,6 @@ module RockPaperScissors (
     playGame
     ) where
 
-
-import Data.Char (toLower)
-import System.IO
 import Data
 
 
