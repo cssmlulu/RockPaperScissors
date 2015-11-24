@@ -15,6 +15,7 @@ instance Ord Strategy where
         | x == Rock     && y == Scissors    = GT
         | x == Paper    && y == Rock        = GT
         | x == Scissors && y == Paper       = GT
+        | x == y                            = EQ
         | otherwise                         = LT
 
 convertStrategy :: Char -> Maybe Strategy
