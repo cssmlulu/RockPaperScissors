@@ -6,15 +6,19 @@ import System.IO
 import Control.Applicative
 import System.Random
 
-
 main :: IO ()
 main = do
+    game
+
+
+game :: IO ()
+game = do
     -- player
     putStrLn "Enter r for Rock, p for Paper or s for Scissors\n"
     putStr "Your choice: "
     hFlush stdout
-    playerChoose <- getChar
-    let player   = convertStrategy playerChoose
+    playerChoose <- getLine
+    let player   = convertStrategy $ head playerChoose
 
     -- computer
     randNum <- getStdRandom (randomR (0,2))
@@ -30,3 +34,11 @@ main = do
             putStrLn "Invalid move."
         Just x  -> do
             putStrLn $ show x   
+
+    -- another game
+    putStr $ "Continue? [y/n]: "
+    hFlush stdout
+    continue <- getLine
+    if continue == "y"
+        then game
+        else return ()
