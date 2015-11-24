@@ -7,15 +7,19 @@ import Control.Applicative
 import System.Random
 import Data.Char(toLower)
 
-main :: IO ()
+--main :: IO Stats
 main = do
-    game
+    finalStat <- game (0,0,0)
+    putStrLn "\n**************************\tGame over\t**********************"
+    putStrLn $ "Result:\n" ++ printStats finalStat
 
 
-game :: IO ()
-game = do
+game :: Stats -> IO Stats
+game stats = do
+    putStrLn "\n**************************\tNew Round\t**********************"
+    putStrLn $ printStats stats
     -- player
-    putStrLn "Enter r for Rock, p for Paper or s for Scissors\n"
+    putStrLn "Enter r for Rock, p for Paper or s for Scissors"
     putStr "Your choice: "
     hFlush stdout
     playerChoose <- getLine
@@ -33,17 +37,20 @@ game = do
     case result of
         Nothing -> do
             putStrLn "Invalid move."
+            gameContinue stats
         Just x  -> do
-            putStrLn $ show x   
-    -- ask whether continue game or not
-    gameContinue
+            putStrLn $ show x
+            let newStats = updateStats stats x
+            gameContinue newStats
 
-gameContinue :: IO ()
-gameContinue = do
+    
+
+gameContinue :: Stats -> IO Stats
+gameContinue stats = do
     putStr $ "Continue? [y/n]: "
     hFlush stdout
     continue <- getLine
     case map toLower continue of
-        "n" -> return ()
-        "y" -> game
-        otherwise -> gameContinue
+        "n" -> return stats
+        "y" -> game stats
+        otherwise -> gameContinue stats

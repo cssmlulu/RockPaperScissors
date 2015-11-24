@@ -2,11 +2,14 @@ module RockPaperScissors (
     randomStrategy,
     convertStrategy,
     playGame ,
+    printStats,
+    updateStats,
+    Stats(..),
     Strategy (..),
     Result (..)
     ) where
 
-
+-- Strategy
 data Strategy = Rock | Paper | Scissors
     deriving (Show, Eq)
 
@@ -38,6 +41,8 @@ playGame x y
     | x < y     = Win
     | otherwise = Lose
 
+
+-- Result
 data Result = Win | Lose | Draw
     deriving (Eq, Ord)
 
@@ -47,3 +52,24 @@ instance Show Result where
         Lose -> "You lose!"
         Draw  -> "Draw!" 
 
+
+
+-- Status
+type Stats = (Int, Int, Int)
+
+updateStats :: Stats -> Result -> Stats
+updateStats (w,l,d) rst = case rst of
+    Win  -> (w+1, l,   d)
+    Lose -> (w,   l+1, d)
+    Draw  -> (w,   l,   d+1)
+
+printStats :: Stats -> String
+printStats (w,l,d) = let wins   = fromIntegral w
+                         loses = fromIntegral l
+                         draws   = fromIntegral d
+                         rounds  = wins + loses + draws
+                         winP   = wins / rounds
+                         loseP  = loses / rounds
+                         drawP   = draws / rounds
+    in "Wins: " ++ show wins ++ " (" ++ show winP ++ "), Loses: " ++ show loses ++ 
+            " (" ++ show loseP ++ "), Draws: " ++ show draws ++ " (" ++ show drawP ++ ")"
