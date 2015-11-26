@@ -1,75 +1,56 @@
-module RockPaperScissors (
-    randomStrategy,
-    convertStrategy,
-    playGame ,
-    printStats,
-    updateStats,
-    Stats(..),
-    Strategy (..),
-    Result (..)
-    ) where
+module RockPaperScissors (game) where
 
--- Strategy
-data Strategy = Rock | Paper | Scissors
-    deriving (Show, Eq)
+import Data
 
-instance Ord Strategy where
-    compare x y 
-        | x == Rock     && y == Scissors    = GT
-        | x == Paper    && y == Rock        = GT
-        | x == Scissors && y == Paper       = GT
-        | x == y                            = EQ
-        | otherwise                         = LT
+import System.IO
+import Control.Applicative
+import System.Random
+import Data.Char(toLower)
 
-convertStrategy :: Char -> Maybe Strategy
-convertStrategy x
-    | x `elem` "Rr" = Just Rock
-    | x `elem` "Pp" = Just Paper
-    | x `elem` "Ss" = Just Scissors
-    | otherwise = Nothing
-
-randomStrategy :: Int -> Strategy
-randomStrategy x
-    | x == 0  = Rock
-    | x == 1  = Paper
-    | x == 2  = Scissors
+--main :: IO Stats
+main = do
+    finalStat <- game (0,0,0)
+    putStrLn "\n**************************\tGame over\t**********************"
+    putStrLn $ "Result:\n" ++ printStats finalStat
 
 
-playGame :: Strategy -> Strategy -> Result
-playGame x y 
-    | x == y    = Draw
-    | x < y     = Win
-    | otherwise = Lose
+game :: Stats -> IO Stats
+game stats = do
+    putStrLn "\n**************************\tNew Round\t**********************"
+    putStrLn $ printStats stats
+    -- player
+    putStrLn "Enter r for Rock, p for Paper or s for Scissors"
+    putStr "Your choice: "
+    hFlush stdout
+    playerChoose <- getLine
+    let player   = convertStrategy $ toLower $ head playerChoose
 
+    -- computer
+    randNum <- getStdRandom (randomR (0,2))
+    putStr "Computer's choice: "
+    hFlush stdout
+    let computer = randomStrategy randNum
+    putStrLn $ show computer
 
--- Result
-data Result = Win | Lose | Draw
-    deriving (Eq, Ord)
+    -- result
+    let result = playGame computer <$> player
+    case result of
+        Nothing -> do
+            putStrLn "Invalid move."
+            gameContinue stats
+        Just x  -> do
+            putStrLn $ show x
+            let newStats = updateStats stats x
+            gameContinue newStats
 
-instance Show Result where
-    show x = case x of
-        Win  -> "You win!"
-        Lose -> "You lose!"
-        Draw  -> "Draw!" 
+    
 
-
-
--- Status
-type Stats = (Int, Int, Int)
-
-updateStats :: Stats -> Result -> Stats
-updateStats (w,l,d) rst = case rst of
-    Win  -> (w+1, l,   d)
-    Lose -> (w,   l+1, d)
-    Draw  -> (w,   l,   d+1)
-
-printStats :: Stats -> String
-printStats (w,l,d) = let wins   = fromIntegral w
-                         loses = fromIntegral l
-                         draws   = fromIntegral d
-                         rounds  = wins + loses + draws
-                         winP   = wins / rounds
-                         loseP  = loses / rounds
-                         drawP   = draws / rounds
-    in "Wins: " ++ show wins ++ " (" ++ show winP ++ "), Loses: " ++ show loses ++ 
-            " (" ++ show loseP ++ "), Draws: " ++ show draws ++ " (" ++ show drawP ++ ")"
+gameContinue :: Stats -> IO Stats
+gameContinue stats = do
+    putStr $ "Continue? [y/n]: "
+    hFlush stdout
+    continue <- getLine
+    case map toLower continue of
+        "n" -> return stats
+        "y" -> game stats
+        otherwise -> gameContinue stats
