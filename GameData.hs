@@ -56,8 +56,8 @@ data Result = Win | Lose | Draw
 
 instance Show Result where
     show x = case x of
-        Win  -> "You win!"
-        Lose -> "You lose!"
+        Win  -> "Win!"
+        Lose -> "Lose!"
         Draw  -> "Draw!" 
 
 

@@ -32,9 +32,6 @@ mainLoop sock chan nr = do
  
 runConn :: (Socket, SockAddr) -> Chan Msg -> Int -> IO ()
 runConn (sock, _) chan nr = do
-    let broadcast msg = do
-        writeChan chan (nr, msg)
-        putStrLn msg
     hdl <- socketToHandle sock ReadWriteMode
     hSetBuffering hdl NoBuffering
     hPutStrLn hdl "Hi, what's your name?"
@@ -42,38 +39,51 @@ runConn (sock, _) chan nr = do
     broadcast ("--> " ++ name ++ " entered.")
     hPutStrLn hdl ("Welcome, " ++ name ++ "!")
     chan' <- dupChan chan
-    reader <- forkIO $ fix $ \loop -> do
+    reader <- forkIO $ fix $ \listenerLoop -> do
         (nr', line) <- readChan chan'
         when (nr /= nr') $ hPutStrLn hdl line
-        loop
+        listenerLoop
+
+    hPutStrLn hdl "Enter Rock, Paper or Scissors to play game. Or chat with others. Or you can quit."
     handle (\(SomeException _) -> return ()) $ fix $ \loop -> do
-        line <- liftM init (hGetLine hdl)
-        let line' = convertStrategy line
-        case line' of
-            Nothing -> do
-                case line of
-                    "quit" -> hPutStrLn hdl "Bye!"
-                    _      -> do
-                        broadcast (name ++ ": " ++ line)
-                        loop                       
-            Just x  -> do
-                putStrLn (name ++ " choose " ++ show x)
-                game hdl x
-                loop
-    killThread reader
-    broadcast ("<-- " ++ name ++ " left.")
-    hClose hdl
+        rst <- server hdl name
+        case rst of
+            "quit" -> do
+                broadcast ("<-- " ++ name ++ " left.")
+                killThread reader
+                hClose hdl
+            _      -> loop
+    where
+        server hdl name = do
+            line <- liftM init (hGetLine hdl)
+            let line' = convertStrategy line
+            case line' of
+                Nothing -> do
+                    case line of
+                        "quit" -> do
+                            return "quit"
+                        _      -> do
+                            broadcast (name ++ ": " ++ line)
+                            return "continue"                      
+                Just strategy  -> do
+                    putStrLn (name ++ " choose: " ++ show strategy)
+                    result <- game hdl strategy
+                    broadcast (name ++ " " ++ show result)
+                    hPutStrLn hdl ("You " ++ show result)
+                    return "continue"
+ 
+        broadcast msg = do
+            writeChan chan (nr, msg)
+            putStrLn msg
 
+        game hdl strategy = do
+            hPutStrLn hdl ("You choose: " ++ show strategy)
+            -- computer
+            randNum <- getStdRandom (randomR (0,2))
+            hPutStr hdl  "Computer choose: "
+            let computer = randomStrategy randNum
+            hPutStrLn hdl $ show computer
 
-
-game hdl player = do
-    -- computer
-    randNum <- getStdRandom (randomR (0,2))
-    hPutStr hdl  "Computer's choice: "
-    let computer = randomStrategy randNum
-    hPutStrLn hdl $ show computer
-
-    -- result
-    let result = playGame computer player
-    hPutStrLn hdl  $ show result
-    return "quit"
+            -- result
+            let result = playGame computer strategy
+            return result
