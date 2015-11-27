@@ -10,7 +10,7 @@ import Control.Monad.Fix (fix)
 import GameData
 import System.Random(getStdRandom,randomR)
 
-type Msg = (Int, String)
+type Msg = (Int, Int, String)
  
 main :: IO ()
 main = do
@@ -20,9 +20,9 @@ main = do
     bindSocket sock (SockAddrInet 1617 iNADDR_ANY)
     listen sock 2
     forkIO $ fix $ \loop -> do
-        (_, msg) <- readChan chan
+        (_, _, msg) <- readChan chan
         loop
-    mainLoop sock chan 0
+    mainLoop sock chan 1
  
 mainLoop :: Socket -> Chan Msg -> Int -> IO ()
 mainLoop sock chan nr = do
@@ -36,12 +36,12 @@ runConn (sock, _) chan nr = do
     hSetBuffering hdl NoBuffering
     hPutStrLn hdl "What's your name?"
     name <- liftM init (hGetLine hdl)
-    broadcast ("--> " ++ name ++ " entered.")
+    sendMsg 0 ("--> " ++ name ++ " entered.")
     hPutStrLn hdl ("Welcome, " ++ name ++ "!")
     chan' <- dupChan chan
-    reader <- forkIO $ fix $ \listenerLoop -> do
-        (nr', line) <- readChan chan'
-        when (nr /= nr') $ hPutStrLn hdl line
+    listener <- forkIO $ fix $ \listenerLoop -> do
+        (fromNr, toNr, line) <- readChan chan'
+        when (nr == toNr || (0 == toNr && nr /= fromNr)) $ hPutStrLn hdl line
         listenerLoop
 
     handle (\(SomeException _) -> return ()) $ fix $ \loop -> do
@@ -49,21 +49,22 @@ runConn (sock, _) chan nr = do
         line <- liftM init (hGetLine hdl)
         case line of
             "q"  -> do
-                broadcast ("<-- " ++ name ++ " left.")
-                killThread reader
+                sendMsg 0 ("<-- " ++ name ++ " left.")
+                killThread listener
                 hClose hdl
             "1"     -> do
-                game hdl name (0,0,0)
+                stats <- game hdl name (0,0,0)
                 loop
             "2"     -> do
                 hPutStrLn hdl $ ("Name:" ++ name ++ "\tID:" ++ show nr)
                 loop
             _      -> do
-                hPutStrLn hdl ("Error Input!")
+                sendMsg 0 (name ++ ": " ++ line)
                 loop
     where
-        broadcast msg = do
-            writeChan chan (nr, msg)
+        --if toNr=0 then sendMsg to all user
+        sendMsg toNr msg = do
+            writeChan chan (nr, toNr, msg)
             putStrLn msg
 
         game hdl name stats = do
@@ -74,7 +75,7 @@ runConn (sock, _) chan nr = do
             case choice' of
                 Nothing -> do
                     case choice of
-                        "q"  -> return ()
+                        "q"  -> return stats
                         _       -> do
                             hPutStrLn hdl ("Invalid move!")
                             game hdl name stats
@@ -90,6 +91,6 @@ runConn (sock, _) chan nr = do
                     -- result
                     let result = playGame computer strategy
                     let newStats = updateStats stats result
-                    --broadcast (name ++ " " ++ show result)
+                    --sendMsg (name ++ " " ++ show result)
                     hPutStrLn hdl ("You " ++ show result)
                     game hdl name newStats
