@@ -44,46 +44,47 @@ runConn (sock, _) chan nr = do
         when (nr /= nr') $ hPutStrLn hdl line
         listenerLoop
 
-    hPutStrLn hdl "Enter Rock, Paper or Scissors to play game. Or chat with others. Or you can quit."
     handle (\(SomeException _) -> return ()) $ fix $ \loop -> do
-        rst <- server hdl name
-        case rst of
-            "quit" -> do
+        hPutStrLn hdl "1) play game.\nq) quit."
+        line <- liftM init (hGetLine hdl)
+        case line of
+            "q"  -> do
                 broadcast ("<-- " ++ name ++ " left.")
                 killThread reader
                 hClose hdl
-            _      -> loop
+            "1"     -> do
+                game hdl name
+                loop
+            _      -> do
+                hPutStrLn hdl ("Error Input!")
+                loop
     where
-        server hdl name = do
-            line <- liftM init (hGetLine hdl)
-            let line' = convertStrategy line
-            case line' of
-                Nothing -> do
-                    case line of
-                        "quit" -> do
-                            return "quit"
-                        _      -> do
-                            broadcast (name ++ ": " ++ line)
-                            return "continue"                      
-                Just strategy  -> do
-                    putStrLn (name ++ " choose: " ++ show strategy)
-                    result <- game hdl strategy
-                    broadcast (name ++ " " ++ show result)
-                    hPutStrLn hdl ("You " ++ show result)
-                    return "continue"
- 
         broadcast msg = do
             writeChan chan (nr, msg)
             putStrLn msg
 
-        game hdl strategy = do
-            hPutStrLn hdl ("You choose: " ++ show strategy)
-            -- computer
-            randNum <- getStdRandom (randomR (0,2))
-            hPutStr hdl  "Computer choose: "
-            let computer = randomStrategy randNum
-            hPutStrLn hdl $ show computer
+        game hdl name = do
+            hPutStrLn hdl "Enter Rock, Paper or Scissors to play game. Enter q to quit game mode."
+            choice <- liftM init (hGetLine hdl)
+            let choice' = convertStrategy choice
+            case choice' of
+                Nothing -> do
+                    case choice of
+                        "q"  -> return ()
+                        _       -> do
+                            hPutStrLn hdl ("Error Input!")
+                            game hdl name
+                Just strategy -> do
+                    putStrLn (name ++ " choose: " ++ show strategy)
+                    hPutStrLn hdl ("You choose: " ++ show strategy)
+                    -- computer
+                    randNum <- getStdRandom (randomR (0,2))
+                    hPutStr hdl  "Computer choose: "
+                    let computer = randomStrategy randNum
+                    hPutStrLn hdl $ show computer
 
-            -- result
-            let result = playGame computer strategy
-            return result
+                    -- result
+                    let result = playGame computer strategy
+                    broadcast (name ++ " " ++ show result)
+                    hPutStrLn hdl ("You " ++ show result)
+                    game hdl name
