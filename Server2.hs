@@ -34,7 +34,7 @@ runConn :: (Socket, SockAddr) -> Chan Msg -> Int -> IO ()
 runConn (sock, _) chan nr = do
     hdl <- socketToHandle sock ReadWriteMode
     hSetBuffering hdl NoBuffering
-    hPutStrLn hdl "Hi, what's your name?"
+    hPutStrLn hdl "What's your name?"
     name <- liftM init (hGetLine hdl)
     broadcast ("--> " ++ name ++ " entered.")
     hPutStrLn hdl ("Welcome, " ++ name ++ "!")
@@ -45,7 +45,7 @@ runConn (sock, _) chan nr = do
         listenerLoop
 
     handle (\(SomeException _) -> return ()) $ fix $ \loop -> do
-        hPutStrLn hdl "1) play game.\nq) quit."
+        hPutStrLn hdl "1) Play Game.\n2) Player Info\nq) Quit."
         line <- liftM init (hGetLine hdl)
         case line of
             "q"  -> do
@@ -53,7 +53,10 @@ runConn (sock, _) chan nr = do
                 killThread reader
                 hClose hdl
             "1"     -> do
-                game hdl name
+                game hdl name (0,0,0)
+                loop
+            "2"     -> do
+                hPutStrLn hdl $ ("Name:" ++ name ++ "\tID:" ++ show nr)
                 loop
             _      -> do
                 hPutStrLn hdl ("Error Input!")
@@ -63,8 +66,9 @@ runConn (sock, _) chan nr = do
             writeChan chan (nr, msg)
             putStrLn msg
 
-        game hdl name = do
-            hPutStrLn hdl "Enter Rock, Paper or Scissors to play game. Enter q to quit game mode."
+        game hdl name stats = do
+            hPutStrLn hdl $ printStats stats
+            hPutStrLn hdl "Enter Rock(r), Paper(p) or Scissors(s) to play game. Enter q to quit game mode."
             choice <- liftM init (hGetLine hdl)
             let choice' = convertStrategy choice
             case choice' of
@@ -72,10 +76,10 @@ runConn (sock, _) chan nr = do
                     case choice of
                         "q"  -> return ()
                         _       -> do
-                            hPutStrLn hdl ("Error Input!")
-                            game hdl name
+                            hPutStrLn hdl ("Invalid move!")
+                            game hdl name stats
                 Just strategy -> do
-                    putStrLn (name ++ " choose: " ++ show strategy)
+                    --putStrLn (name ++ " choose: " ++ show strategy)
                     hPutStrLn hdl ("You choose: " ++ show strategy)
                     -- computer
                     randNum <- getStdRandom (randomR (0,2))
@@ -85,6 +89,7 @@ runConn (sock, _) chan nr = do
 
                     -- result
                     let result = playGame computer strategy
-                    broadcast (name ++ " " ++ show result)
+                    let newStats = updateStats stats result
+                    --broadcast (name ++ " " ++ show result)
                     hPutStrLn hdl ("You " ++ show result)
-                    game hdl name
+                    game hdl name newStats
